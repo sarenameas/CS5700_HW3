@@ -35,8 +35,8 @@ def get_checksum(segment):
 
 # Dermines if the input segment is corrupt. Returns True if it is, False
 # otherwise.
-def is_corrupt(segemnt):
-  padded_segment = segment + segment + bytes(len(segment) % 2)
+def is_corrupt(segment):
+  padded_segment = segment + bytes(len(segment) % 2)
   words = [padded_segment[i:i+2] for i in range(0, len(padded_segment), 2)]
   shorts = [struct.unpack('!H', word)[0] for word in words]
   MAXSHORT = pow(2,16) - 1
@@ -61,7 +61,7 @@ def is_ack(segment, expected_sequence):
 
 # Determind if the input segment is a data segment with the expected 
 # sequence number.
-def is_seq(segment, expected_sequence):
+def has_seq(segment, expected_sequence):
   type = struct.unpack('!H', segment[:2])[0]
   sequence = struct.unpack('!H', segment[2:4])[0]
   if type == config.MSG_TYPE_DATA and sequence == expected_sequence:
@@ -71,17 +71,19 @@ def is_seq(segment, expected_sequence):
 
 # Create a segment from the given message type, sequence number, and input 
 # payload. Returns the segment in bytes.
-def make_segment(type, sequence, payload):
-  btype = struct.pack('!H', type)
+def make_segment(msg_type, sequence, payload):
+  bmsg_type = struct.pack('!H', msg_type)
   bsequence = struct.pack('!H', sequence)
-  bpayload = msg.encode()
-  bchecksum = util.get_checksum(btype + bsequence + bpayload)
-  segment = btype + bsequence + bchecksum + bpayload
+  bpayload = payload
+  if type(payload) is str:
+    bpayload = payload.encode()
+  bchecksum = get_checksum(bmsg_type + bsequence + bpayload)
+  segment = bmsg_type + bsequence + bchecksum + bpayload
   return segment
 
 # Extracts and returns the payload from the input segment.
 def extract(segment):
-  payload = struct.unpack('s',segment[6:])
+  payload = segment[6:].decode()
   return payload
 
 

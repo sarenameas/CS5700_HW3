@@ -6,12 +6,12 @@ import util
 
 
 def msg_handler(msg):
-  print repr(msg)
+  print(repr(msg))
 
 
 if __name__ == '__main__':
   if len(sys.argv) != 2:
-    print 'Usage: python demo_receiver.py [dummy|ss|gbn]'
+    print('Usage: python demo_receiver.py [dummy|ss|gbn]')
     sys.exit(1)
 
   transport_layer = None

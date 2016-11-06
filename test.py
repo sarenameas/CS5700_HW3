@@ -14,3 +14,7 @@ t.start()  # after 30 seconds, "hello, world" will be printed
 
 print("is this blocked?")
 time.sleep(3)
+
+if t:
+    t.cancel()
+    print("can cancel already stopped timer!")

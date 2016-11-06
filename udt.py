@@ -74,6 +74,7 @@ class NetworkLayer:
     byte_index = random.randrange(l)
     prefix = msg[:byte_index]
     suffix = msg[byte_index+1:]
+    # Indexing array without range will return an int
     original_byte = msg[byte_index]
-    changed_byte = chr(ord(original_byte) ^ 255)
-    return ''.join([prefix, changed_byte, suffix])
+    changed_byte = bytes([original_byte ^ 255])
+    return prefix + changed_byte + suffix
