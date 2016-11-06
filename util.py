@@ -1,6 +1,7 @@
 import dummy
 import gbn
 import ss
+import config
 import struct
 
 
@@ -31,3 +32,57 @@ def get_checksum(segment):
   # truncate the integer byte represenation to a short
   bchecksum = struct.pack('!i', checksum)[-2:]
   return bchecksum
+
+# Dermines if the input segment is corrupt. Returns True if it is, False
+# otherwise.
+def is_corrupt(segemnt):
+  padded_segment = segment + segment + bytes(len(segment) % 2)
+  words = [padded_segment[i:i+2] for i in range(0, len(padded_segment), 2)]
+  shorts = [struct.unpack('!H', word)[0] for word in words]
+  MAXSHORT = pow(2,16) - 1
+  sum = 0
+  for short in shorts:
+    sum = sum + short
+  
+  if sum == MAXSHORT:
+    return False
+  return True
+
+# Determine if the input segment is an ACK segment. Returns True of the 
+# segment is and ACK segment and has the given expected_sequence, false 
+# otherwise. 
+def is_ack(segment, expected_sequence):
+  type = struct.unpack('!H', segment[:2])[0]
+  sequence = struct.unpack('!H', segment[2:4])[0]
+  if type == config.MSG_TYPE_ACK and sequence == expected_sequence:
+    return True
+  else:
+    return False
+
+# Determind if the input segment is a data segment with the expected 
+# sequence number.
+def is_seq(segment, expected_sequence):
+  type = struct.unpack('!H', segment[:2])[0]
+  sequence = struct.unpack('!H', segment[2:4])[0]
+  if type == config.MSG_TYPE_DATA and sequence == expected_sequence:
+    return True
+  else:
+    return False
+
+# Create a segment from the given message type, sequence number, and input 
+# payload. Returns the segment in bytes.
+def make_segment(type, sequence, payload):
+  btype = struct.pack('!H', type)
+  bsequence = struct.pack('!H', sequence)
+  bpayload = msg.encode()
+  bchecksum = util.get_checksum(btype + bsequence + bpayload)
+  segment = btype + bsequence + bchecksum + bpayload
+  return segment
+
+# Extracts and returns the payload from the input segment.
+def extract(segment):
+  payload = struct.unpack('s',segment[6:])
+  return payload
+
+
+    
