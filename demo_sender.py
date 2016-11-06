@@ -6,7 +6,7 @@ import util
 
 if __name__ == '__main__':
   if len(sys.argv) != 2:
-    print 'Usage: python demo_sender.py [dummy|ss|gbn]'
+    print('Usage: python demo_sender.py [dummy|ss|gbn]')
     sys.exit(1)
 
   transport_layer = None
@@ -17,7 +17,7 @@ if __name__ == '__main__':
         config.RECEIVER_LISTEN_PORT, None)
     for i in range(20):
       msg = 'MSG:' + str(i)
-      print repr(msg)
+      print(repr(msg))
       while not transport_layer.send(msg):
         pass
   finally:
