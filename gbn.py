@@ -41,7 +41,7 @@ class GoBackN:
       seqnum = util.get_seq(msg)
       # Sender actions are for ACK packets
       if util.is_ack(msg, seqnum):
-        if config.DEBUG: print("Recieved ACK, ", seqnum)
+        if config.DEBUG: print("Received ACK, ", seqnum)
         oldbase = self.base
         self.base = seqnum + 1
         # Moving the base means shifting the list
@@ -53,22 +53,22 @@ class GoBackN:
           self.timer.start()
       # Reciver actions are for DATA packets
       elif util.has_seq(msg, self.expectedseqnum): 
-        if config.DEBUG: print("Recieved DATA, ", seqnum)
+        if config.DEBUG: print("Received DATA, ", seqnum)
         payload = util.extract(msg)
         self.msg_handler(payload)
         self.recvr_segment = util.make_segment(config.MSG_TYPE_ACK, self.expectedseqnum, b'')
         self.network_layer.send(self.recvr_segment)
         self.expectedseqnum += 1
-      # Recieved out of order sequence
+      # Received out of order sequence
       else:
         if config.DEBUG: 
-          print("Out of order packet recieved, seqnum = ", seqnum)
+          print("Out of order packet received, seqnum = ", seqnum)
           if struct.unpack('!H', msg[:2])[0] == config.MSG_TYPE_DATA:
             print("Expectedseqnum = ", self.expectedseqnum)
     else:
-      if config.DEBUG: print("Corrupt packet recieved")
+      if config.DEBUG: print("Corrupt packet received")
       
-    # Reciever always sends an ack for the last successful packet recieved
+    # Receiver always sends an ack for the last successful packet received
     if struct.unpack('!H', msg[:2])[0] == config.MSG_TYPE_DATA:
       self.network_layer.send(self.recvr_segment)
   # end handle_arrival_msg()
@@ -95,6 +95,6 @@ class GoBackN:
     while self.base != self.nextseqnum:
       if config.DEBUG:
         print("All packets sent to transport layer from upper application.")
-        time.sleep(1)
+      pass
     self.timer.exit()
     self.network_layer.shutdown()

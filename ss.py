@@ -23,7 +23,7 @@ class StopAndWait:
     self.msg_handler = msg_handler
     # The initial state for the sender is wait for seq 0 from above
     self.send_state = State.SEQ_0
-    # The initial state for the reciever is wait for seq 0 from below
+    # The initial state for the receiver is wait for seq 0 from below
     self.recv_state = State.SEQ_0
     # Initally empty transport layer segment
     self.segment = b''
@@ -69,38 +69,38 @@ class StopAndWait:
         # Make sure the timer is stopped upon transition to waiting for 
         # messages from above.
         self.timer.stop()
-        if config.DEBUG: print("Recieved ACK 0")
+        if config.DEBUG: print("Received ACK 0")
         self.send_state = State.SEQ_1
       else:
-        if config.DEBUG: print("Corrupt or out-of-order packet recieved in state ACK0")
+        if config.DEBUG: print("Corrupt or out-of-order packet received in state ACK0")
     elif self.send_state == State.ACK_1:
       if (not util.is_corrupt(msg)) and util.is_ack(msg, 1):
         self.timer.stop()
-        if config.DEBUG: print("Recieved ACK 1")
+        if config.DEBUG: print("Received ACK 1")
         self.send_state = State.SEQ_0
       else:
-        if config.DEBUG: print("Corrupt or out-of-order packet recieved in state ACK1")
+        if config.DEBUG: print("Corrupt or out-of-order packet received in state ACK1")
     elif self.recv_state == State.SEQ_0:
       if (not util.is_corrupt(msg)) and util.has_seq(msg, self.recv_state.value):
-        if config.DEBUG: print("Recieved DATA 0")
+        if config.DEBUG: print("Received DATA 0")
         payload = util.extract(msg)
         self.msg_handler(payload)
         self.segment = util.make_segment(config.MSG_TYPE_ACK, self.recv_state.value, b'')
         self.oncethru = 1
         self.recv_state = State.SEQ_1
       else:
-        if config.DEBUG: print("Corrupt or out-of-order packet recieved in state SEQ0")
+        if config.DEBUG: print("Corrupt or out-of-order packet received in state SEQ0")
       if self.oncethru == 1:
         self.network_layer.send(self.segment)
     elif self.recv_state == State.SEQ_1:
       if (not util.is_corrupt(msg)) and util.has_seq(msg, self.recv_state.value):
-        if config.DEBUG: print("Recieved DATA 1")
+        if config.DEBUG: print("Received DATA 1")
         payload = util.extract(msg)
         self.msg_handler(payload)
         self.segment = util.make_segment(config.MSG_TYPE_ACK, self.recv_state.value, b'')
         self.recv_state = State.SEQ_0
       else:
-        if config.DEBUG: print("Corrupt or out-of-order packet recieved in state SEQ1")
+        if config.DEBUG: print("Corrupt or out-of-order packet received in state SEQ1")
       self.network_layer.send(self.segment)
 
   # "handler" to be called by the timer threads
@@ -116,5 +116,7 @@ class StopAndWait:
 
   # Cleanup resources.
   def shutdown(self):
+    # Need to wait for final ACK before shutting down.
+    while self.send_state == State.ACK_0 or self.send_state == State.ACK_1: pass
     self.timer.exit()
     self.network_layer.shutdown()
