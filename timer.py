@@ -10,13 +10,13 @@ class TimerThread:
         self.event = threading.Event()
         self.timeout_handler = timeout_handler
         self.started = False
-        self.exit = False
+        self.end = False
         threading.Thread(target=self.run).start()
 
     def run(self):
         while True:
             # Exit thread
-            if self.exit:
+            if self.end:
                 return
 
             # if the timer is started 
@@ -35,4 +35,4 @@ class TimerThread:
         self.event.clear()
 
     def exit(self):
-        self.exit = True
+        self.end = True

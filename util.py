@@ -88,6 +88,6 @@ def extract(segment):
 
 # Get the sequence number from the pack.import
 def get_seq(segment):
-  return struct.unpack('!h', segment[2:5])[0]
+  return struct.unpack('!h', segment[2:4])[0]
 
     

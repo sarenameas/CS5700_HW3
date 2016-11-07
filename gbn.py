@@ -12,7 +12,7 @@ class GoBackN:
     self.msg_handler = msg_handler
     self.base = 1
     self.nextseqnum = 1
-    self.sendpkt = []
+    self.sendpkt = [b'']*config.WINDOWN_SIZE
     self.expectedseqnum = 1
     # Starts the timer thread immediately upon object creating
     self.timer = timer.TimerThread(self.timeout_handler)
@@ -21,13 +21,15 @@ class GoBackN:
   # otherwise.
   def send(self, msg):
     if self.nextseqnum < (self.base + config.WINDOWN_SIZE):
-      sendpkt[nextseqnum - base] = util.make_segment(config.MSG_TYPE_DATA, self.nextseqnum, msg)
-      self.network_layer.send()
-      if base == nextseqnum:
+      self.sendpkt[self.nextseqnum - self.base] = util.make_segment(config.MSG_TYPE_DATA, self.nextseqnum, msg)
+      self.network_layer.send(self.sendpkt[self.nextseqnum - self.base])
+      if self.base == self.nextseqnum:
+        self.timer.stop()
         self.timer.start()
-      nextseqnum += 1
+      self.nextseqnum += 1
     else:
       return False
+    return True
 
   # "handler" to be called by network layer when packet is ready.
   def handle_arrival_msg(self):
@@ -43,17 +45,17 @@ class GoBackN:
           self.timer.stop()
           self.timer.start()
       # Reciver actions are for DATA packets
-      if util.is_seq(msg, self.expectedseqnum): 
+      if util.has_seq(msg, self.expectedseqnum): 
         payload = util.extract(msg)
         self.msg_handler(payload)
-        segment = make_segment(config.MSG_TYPE_ACK, self.expectedseqnum)
+        segment = util.make_segment(config.MSG_TYPE_ACK, self.expectedseqnum, b'')
         self.network_layer.send(segment)
         self.expectedseqnum += 1
   
   # "handler" to be called by the timer when it times out.
   def timeout_handler(self):
     self.timer.start()
-    for pkt in sendpkt[self.base:self.nextseqnum]:
+    for pkt in self.sendpkt[self.base-1:self.nextseqnum]:
       self.network_layer.send(pkt)
 
   # Cleanup resources.
