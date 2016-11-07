@@ -16,7 +16,7 @@ def get_transport_layer_by_name(name, local_port, remote_port, msg_handler):
 
 # Calculates the checksum of the input segment bytes in big endian. Returns 
 # the 16 bit checksum.
-def get_checksum(segment):
+def make_checksum(segment):
   padded_segment = segment + bytes(len(segment) % 2)
   words = [padded_segment[i:i+2] for i in range(0, len(padded_segment), 2)]
   shorts = [struct.unpack('!H', word)[0] for word in words]
@@ -77,7 +77,7 @@ def make_segment(msg_type, sequence, payload):
   bpayload = payload
   if type(payload) is str:
     bpayload = payload.encode()
-  bchecksum = get_checksum(bmsg_type + bsequence + bpayload)
+  bchecksum = make_checksum(bmsg_type + bsequence + bpayload)
   segment = bmsg_type + bsequence + bchecksum + bpayload
   return segment
 
@@ -86,5 +86,8 @@ def extract(segment):
   payload = segment[6:].decode()
   return payload
 
+# Get the sequence number from the pack.import
+def get_seq(segment):
+  return struct.unpack('!h', segment[2:5])[0]
 
     

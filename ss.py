@@ -102,6 +102,5 @@ class StopAndWait:
 
   # Cleanup resources.
   def shutdown(self):
-    # TODO: cleanup anything else you may have when implementing this
-    # class.
+    self.timer.exit()
     self.network_layer.shutdown()
