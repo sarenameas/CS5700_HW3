@@ -2,8 +2,8 @@ import udt
 import config
 import struct
 import util
+import timer
 from enum import IntEnum
-from threading import Timer
 from threading import Lock
 
 # Define the sender and reciver states
@@ -31,22 +31,20 @@ class StopAndWait:
     self.segment_lock = Lock()
     # Once through for reciver
     self.oncethru = 0
-    # Define timer thread
-    self.timer = None
+    # Define timer thread, creates thread immediately
+    self.timer = timer.TimerThread(self.handle_timeout)
 
 
   # "send" is called by application. Return true on success, false
   # otherwise.
   def send(self, msg):
-    # TODO: impl protocol to send packet from application layer.
-    # call self.network_layer.send() to send to network layer.
     if (self.send_state == State.ACK_0 or self.send_state == State.ACK_1):
       return False
     else:
-      if self.timer:
-        self.timer.cancel()
       # Create the segment with the proper header
+      self.segment_lock.acquire()
       self.segment = util.make_segment(config.MSG_TYPE_DATA, self.send_state, msg)
+      self.segment_lock.release()
 
       # Update the state of this protocol
       if self.send_state == State.SEQ_0:
@@ -58,7 +56,6 @@ class StopAndWait:
       self.network_layer.send(self.segment)
             
       # Start the timer
-      self.timer = Timer(config.TIMEOUT_MSEC * (0.001), self.handle_timeout)
       self.timer.start()
     return True
 
@@ -69,11 +66,13 @@ class StopAndWait:
     
     if self.send_state == State.ACK_0: 
       if (not util.is_corrupt(msg)) and util.is_ack(msg, 0):
-        self.timer.cancel()
+        # Make sure the timer is stopped upon transition to waiting for 
+        # messages from above.
+        self.timer.stop()
         self.send_state = State.SEQ_1
     elif self.send_state == State.ACK_1:
       if (not util.is_corrupt(msg)) and util.is_ack(msg, 1):
-        self.timer.cancel()
+        self.timer.stop()
         self.send_state = State.SEQ_0
     elif self.recv_state == State.SEQ_0:
       if (not util.is_corrupt(msg)) and util.has_seq(msg, self.recv_state.value):
@@ -95,10 +94,11 @@ class StopAndWait:
   # "handler" to be called by the timer threads
   def handle_timeout(self):
     # Send the segment into the network
+    self.segment_lock.acquire()
     self.network_layer.send(self.segment)
-    # Start the timer
-    self.timer = Timer(config.TIMEOUT_MSEC * (0.001), self.handle_timeout)
-    self.timer.start()      
+    self.segment_lock.release()
+    # Start the Timer
+    self.timer.start()    
 
   # Cleanup resources.
   def shutdown(self):
