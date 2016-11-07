@@ -8,7 +8,7 @@ import util
 
 if __name__ == '__main__':
   if len(sys.argv) != 3:
-    print 'Usage: python file_sender.py [dummy|ss|gbn] [file_name]'
+    print('Usage: python file_sender.py [dummy|ss|gbn] [file_name]')
     sys.exit(1)
 
   transport_layer = None
@@ -25,11 +25,11 @@ if __name__ == '__main__':
       while True:
         msg = f.read(config.MAX_MESSAGE_SIZE)
         if not msg: break
-        print 'MSG of length ' + str(len(msg))
+        print('MSG of length ' + str(len(msg)))
         while not transport_layer.send(msg):
           pass
   finally:
     if transport_layer:
       transport_layer.shutdown()
     end_time = time.time()
-    print 'Time used [secs]:', end_time - start_time
+    print('Time used [secs]:', end_time - start_time)
