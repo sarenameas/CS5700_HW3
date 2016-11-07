@@ -4,7 +4,7 @@ import sys
 
 if __name__ == "__main__":
   if len(sys.argv) != 2:
-    print 'Usage: python md5 file_name'
+    print('Usage: python md5 file_name')
     sys.exit(1)
 
   md5 = hashlib.md5()
@@ -12,5 +12,5 @@ if __name__ == "__main__":
     while True:
       block = f.read(1024)
       if not block: break
-      md5.update(block)
-  print repr(md5.digest())
+      md5.update(block.encode())
+  print(repr(md5.digest()))
