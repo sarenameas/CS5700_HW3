@@ -2,6 +2,8 @@ import udt
 import config
 import util
 import timer
+import time
+import struct
 
 # Go-Back-N reliable transport protocol.
 class GoBackN:
@@ -14,6 +16,7 @@ class GoBackN:
     self.nextseqnum = 1
     self.sendpkt = [b'']*config.WINDOWN_SIZE
     self.expectedseqnum = 1
+    self.recvr_segment = util.make_segment(config.MSG_TYPE_ACK, 0, b'')
     # Starts the timer thread immediately upon object creating
     self.timer = timer.TimerThread(self.timeout_handler)
 
@@ -38,6 +41,7 @@ class GoBackN:
       seqnum = util.get_seq(msg)
       # Sender actions are for ACK packets
       if util.is_ack(msg, seqnum):
+        if config.DEBUG: print("Recieved ACK, ", seqnum)
         oldbase = self.base
         self.base = seqnum + 1
         # Moving the base means shifting the list
@@ -48,21 +52,49 @@ class GoBackN:
           self.timer.stop()
           self.timer.start()
       # Reciver actions are for DATA packets
-      if util.has_seq(msg, self.expectedseqnum): 
+      elif util.has_seq(msg, self.expectedseqnum): 
+        if config.DEBUG: print("Recieved DATA, ", seqnum)
         payload = util.extract(msg)
         self.msg_handler(payload)
-        segment = util.make_segment(config.MSG_TYPE_ACK, self.expectedseqnum, b'')
-        self.network_layer.send(segment)
+        self.recvr_segment = util.make_segment(config.MSG_TYPE_ACK, self.expectedseqnum, b'')
+        self.network_layer.send(self.recvr_segment)
         self.expectedseqnum += 1
+      # Recieved out of order sequence
+      else:
+        if config.DEBUG: 
+          print("Out of order packet recieved, seqnum = ", seqnum)
+          if struct.unpack('!H', msg[:2])[0] == config.MSG_TYPE_DATA:
+            print("Expectedseqnum = ", self.expectedseqnum)
+    else:
+      if config.DEBUG: print("Corrupt packet recieved")
+      
+    # Reciever always sends an ack for the last successful packet recieved
+    if struct.unpack('!H', msg[:2])[0] == config.MSG_TYPE_DATA:
+      self.network_layer.send(self.recvr_segment)
+  # end handle_arrival_msg()
   
   # "handler" to be called by the timer when it times out.
   def timeout_handler(self):
-    self.timer.start()
+    snapshot = []
+    for pkt in self.sendpkt:
+      if pkt != b'':
+        snapshot.append('w')
+      else:
+        snapshot.append('x')
+    if config.DEBUG:
+      print("Timeout: window: ", snapshot)
+      print("Timeout: base = ", self.base)
+      print("Timeout: nextseqnum = ", self.nextseqnum)
     for pkt in self.sendpkt[:(self.nextseqnum-self.base)]:
       self.network_layer.send(pkt)
+    self.timer.stop()
+    self.timer.start()
 
   # Cleanup resources.
   def shutdown(self):
-    while self.base != self.nextseqnum: pass
+    while self.base != self.nextseqnum:
+      if config.DEBUG:
+        print("All packets sent to transport layer from upper application.")
+        time.sleep(1)
     self.timer.exit()
     self.network_layer.shutdown()

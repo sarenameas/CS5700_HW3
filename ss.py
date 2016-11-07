@@ -69,35 +69,49 @@ class StopAndWait:
         # Make sure the timer is stopped upon transition to waiting for 
         # messages from above.
         self.timer.stop()
+        if config.DEBUG: print("Recieved ACK 0")
         self.send_state = State.SEQ_1
+      else:
+        if config.DEBUG: print("Corrupt or out-of-order packet recieved in state ACK0")
     elif self.send_state == State.ACK_1:
       if (not util.is_corrupt(msg)) and util.is_ack(msg, 1):
         self.timer.stop()
+        if config.DEBUG: print("Recieved ACK 1")
         self.send_state = State.SEQ_0
+      else:
+        if config.DEBUG: print("Corrupt or out-of-order packet recieved in state ACK1")
     elif self.recv_state == State.SEQ_0:
       if (not util.is_corrupt(msg)) and util.has_seq(msg, self.recv_state.value):
+        if config.DEBUG: print("Recieved DATA 0")
         payload = util.extract(msg)
         self.msg_handler(payload)
         self.segment = util.make_segment(config.MSG_TYPE_ACK, self.recv_state.value, b'')
         self.oncethru = 1
         self.recv_state = State.SEQ_1
+      else:
+        if config.DEBUG: print("Corrupt or out-of-order packet recieved in state SEQ0")
       if self.oncethru == 1:
         self.network_layer.send(self.segment)
     elif self.recv_state == State.SEQ_1:
       if (not util.is_corrupt(msg)) and util.has_seq(msg, self.recv_state.value):
+        if config.DEBUG: print("Recieved DATA 1")
         payload = util.extract(msg)
         self.msg_handler(payload)
         self.segment = util.make_segment(config.MSG_TYPE_ACK, self.recv_state.value, b'')
         self.recv_state = State.SEQ_0
+      else:
+        if config.DEBUG: print("Corrupt or out-of-order packet recieved in state SEQ1")
       self.network_layer.send(self.segment)
 
   # "handler" to be called by the timer threads
   def handle_timeout(self):
+    if config.DEBUG: print("Timeout: state = ", self.send_state)
     # Send the segment into the network
     self.segment_lock.acquire()
     self.network_layer.send(self.segment)
     self.segment_lock.release()
     # Start the Timer
+    self.timer.stop()
     self.timer.start()    
 
   # Cleanup resources.
