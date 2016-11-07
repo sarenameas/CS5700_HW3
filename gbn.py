@@ -38,7 +38,10 @@ class GoBackN:
       seqnum = util.get_seq(msg)
       # Sender actions are for ACK packets
       if util.is_ack(msg, seqnum):
+        oldbase = self.base
         self.base = seqnum + 1
+        # Moving the base means shifting the list
+        self.sendpkt = self.sendpkt[self.base - oldbase:] + [b''] * (self.base - oldbase)
         if (self.base == self.nextseqnum):
           self.timer.stop()
         else:
@@ -55,10 +58,11 @@ class GoBackN:
   # "handler" to be called by the timer when it times out.
   def timeout_handler(self):
     self.timer.start()
-    for pkt in self.sendpkt[self.base-1:self.nextseqnum]:
+    for pkt in self.sendpkt[:(self.nextseqnum-self.base)]:
       self.network_layer.send(pkt)
 
   # Cleanup resources.
   def shutdown(self):
+    while self.base != self.nextseqnum: pass
     self.timer.exit()
     self.network_layer.shutdown()
