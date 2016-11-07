@@ -92,9 +92,6 @@ class GoBackN:
 
   # Cleanup resources.
   def shutdown(self):
-    while self.base != self.nextseqnum:
-      if config.DEBUG:
-        print("All packets sent to transport layer from upper application.")
-      pass
+    while self.base != self.nextseqnum: pass
     self.timer.exit()
     self.network_layer.shutdown()
