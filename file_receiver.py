@@ -13,7 +13,7 @@ def msg_handler(file_handle, msg):
 
 if __name__ == '__main__':
   if len(sys.argv) != 3:
-    print 'Usage: python file_receiver.py [dummy|ss|gbn] [file_name]'
+    print('Usage: python file_receiver.py [dummy|ss|gbn] [file_name]')
     sys.exit(1)
 
   transport_layer = None

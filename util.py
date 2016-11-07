@@ -43,6 +43,9 @@ def is_corrupt(segment):
   sum = 0
   for short in shorts:
     sum = sum + short
+    if sum > MAXSHORT:
+      sum = sum & MAXSHORT
+      sum += 1
   
   if sum == MAXSHORT:
     return False
